@@ -1,6 +1,6 @@
 #include <iostream>
 #include <numeric>
-#include <string>
+#include <sstream>
 #include <vector>
 #include "omp.h"
 
@@ -11,7 +11,7 @@ double rect_area(const int idx, const double step) {
 }
 
 
-double calc_pi(const double num_steps, const int num_threads) {
+double calc_pi(const double num_steps, size_t &num_threads) {
     double step = 1.0 / static_cast<double>(num_steps);
     std::vector<double> thread_sums(num_threads);
 
@@ -19,6 +19,9 @@ double calc_pi(const double num_steps, const int num_threads) {
     #pragma omp parallel
     {
         int id = omp_get_thread_num();
+        if (!id) {
+            num_threads = omp_get_num_threads();
+        }
         for (int i = id; i < num_steps; i += num_threads) {
             thread_sums[id] += rect_area(i, step);
         }
@@ -29,20 +32,23 @@ double calc_pi(const double num_steps, const int num_threads) {
 }
 
 
-int main(int argc, char **argv) {
-    long num_steps;
-    if (argc > 1) {
-        num_steps = std::stol(argv[1]);
+size_t arg_idx = 0;
+template<typename T>
+T arg_to_var(const T default_val, const int argc, const char * const *argv) {
+    T var;
+    if (argc > ++arg_idx) {
+        std::istringstream iss(argv[arg_idx]);
+        iss >> var;
     } else {
-        num_steps = 100'000;
+        var = default_val;
     }
+    return var;
+}
 
-    int num_threads;
-    if (argc > 2) {
-        num_threads = std::stoi(argv[2]);
-    } else {
-        num_threads = 4;
-    }
+
+int main(int argc, char **argv) {
+    long num_steps = arg_to_var<long>(100'000, argc, argv);
+    size_t num_threads = arg_to_var<size_t>(4, argc, argv);
 
     double t0 = omp_get_wtime();
     double pi = calc_pi(num_steps, num_threads);
