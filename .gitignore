@@ -1,0 +1,7 @@
+.vscode/
+OMP_exercises/
+
+*.out
+*.pdf
+*.zip
+.DS_Store
