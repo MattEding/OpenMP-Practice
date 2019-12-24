@@ -5,32 +5,28 @@
 #include "omp.h"
 
 
-#define PAD 8
-
-double rect_area(const int idx, const double step) {
-    double x = (idx + 0.5) * step;
-    return 4.0 / (1.0 + x*x);
-}
-
-
 double calc_pi(const size_t num_steps, size_t &num_threads) {
     double step = 1.0 / static_cast<double>(num_steps);
-    std::vector<double[PAD]> thread_sums(num_threads);
+    double sum = 0.0;
 
     omp_set_num_threads(num_threads);
-    #pragma omp parallel
+#pragma omp parallel
     {
         int id = omp_get_thread_num();
         if (!id) {
             num_threads = omp_get_num_threads();
         }
+
+        double partial_sum = 0.0;
         for (int i = id; i < num_steps; i += num_threads) {
-            thread_sums[id][0] += rect_area(i, step);
+            double x = (i + 0.5) * step;
+            partial_sum += 4.0 / (1.0 + x*x);
         }
+
+#pragma omp critical
+        sum += partial_sum;
     }
 
-    double sum = std::accumulate(thread_sums.begin(), thread_sums.end(), 0.0,
-                                 [](const auto acc, const auto it){ return acc + it[0]; });
     return step * sum;
 }
 
