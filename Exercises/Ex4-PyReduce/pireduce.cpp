@@ -7,7 +7,7 @@ double calc_pi(const size_t num_steps) {
     double step = 1.0 / static_cast<double>(num_steps);
     double sum = 0.0;
 
-#pragma omp parallel for reduction(+: sum)
+#pragma omp parallel for reduction(+: sum) schedule(runtime)
     for (int i = 0; i < num_steps; ++i) {
         double x = (i + 0.5) * step;
         sum += 4.0 / (1.0 + x*x);
@@ -32,6 +32,11 @@ T arg_to_var(const T default_val, const int argc, const char * const *argv) {
 
 int main(int argc, char **argv) {
     size_t num_steps = arg_to_var<size_t>(100'000, argc, argv);
+
+    omp_sched_t kind;
+    int chunk;
+    omp_get_schedule(&kind, &chunk);
+    std::cout << kind << ' ' << chunk << std::endl;
 
     double t0 = omp_get_wtime();
     double pi = calc_pi(num_steps);
